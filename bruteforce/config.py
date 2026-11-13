@@ -23,6 +23,14 @@ def parse(args):
                         "--data, or it is appended automatically).")
     p.add_argument("--csrf-url", default="",
                    help="Page to GET for the CSRF token (defaults to --target).")
+    p.add_argument("--method", default="POST", choices=["POST", "GET"],
+                   help="How credentials are submitted. GET puts them in the "
+                        "query string (e.g. DVWA's brute-force page); POST in the "
+                        "request body (default).")
+    p.add_argument("--cookie", default="",
+                   help="Cookie header sent with every request, e.g. "
+                        "'PHPSESSID=abc123; security=low'. Needed for login forms "
+                        "behind an authenticated area.")
     p.add_argument("--threads", type=int, default=4)
     p.add_argument("--rps", type=int, default=10)
     p.add_argument("--proxies", default="")

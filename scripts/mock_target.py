@@ -54,10 +54,28 @@ CSRF_FORM = """<!doctype html>
 <p>Each page load issues a fresh user_token tied to your session cookie.</p>
 </body></html>"""
 
+# Mimics DVWA's /vulnerabilities/brute/ page: GET submission, gated behind a
+# login (dvwa_session cookie) and a security level (security cookie). At
+# security=high a rotating user_token is required, like the real app.
+DVWA_FORM = """<!doctype html>
+<html><head><title>Vulnerability: Brute Force</title></head><body>
+<h1>Vulnerability: Brute Force</h1>
+<form action="/dvwa" method="GET">
+  Username: <input type="text" name="username"><br>
+  Password: <input type="password" name="password"><br>
+  <input type="submit" value="Login" name="Login">
+  {token_input}
+</form>
+</body></html>"""
+
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path.rstrip("/") == "/csrf":
+        parts = urllib.parse.urlsplit(self.path)
+        path = parts.path.rstrip("/")
+        if path == "/dvwa":
+            self._dvwa(urllib.parse.parse_qs(parts.query))
+        elif path == "/csrf":
             sid = self._sid() or uuid.uuid4().hex
             token = uuid.uuid4().hex
             SESSIONS[sid] = token
@@ -65,6 +83,39 @@ class Handler(BaseHTTPRequestHandler):
                           {"Set-Cookie": f"sid={sid}; Path=/"})
         else:
             self._respond(200, LOGIN_FORM, "text/html")
+
+    def _dvwa(self, qs):
+        """DVWA brute-force page: login-gated (dvwa_session cookie), GET submit,
+        rotating user_token when security=high."""
+        cookies = self._cookies()
+        if "dvwa_session" not in cookies:
+            self._respond(302, "Please login", "text/plain", {"Location": "/login.php"})
+            return
+        high = cookies.get("security") == "high"
+        sess = cookies["dvwa_session"]
+
+        if "Login" not in qs:  # just viewing the form
+            if high:
+                token = uuid.uuid4().hex
+                SESSIONS[sess] = token
+                inp = f"<input type='hidden' name='user_token' value='{token}'>"
+            else:
+                inp = ""
+            self._respond(200, DVWA_FORM.format(token_input=inp), "text/html")
+            return
+
+        if high:  # verify + rotate the token
+            if qs.get("user_token", [""])[0] != SESSIONS.get(sess):
+                self._respond(200, "CSRF token is incorrect.", "text/html")
+                return
+            SESSIONS[sess] = uuid.uuid4().hex
+
+        user = qs.get("username", [""])[0]
+        pw = qs.get("password", [""])[0]
+        if user == VALID_USER and pw == VALID_PASS:
+            self._respond(200, "Welcome to the password protected area " + user)
+        else:
+            self._respond(200, "Username and/or password incorrect.")
 
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
@@ -94,13 +145,16 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._respond(401, "Invalid credentials")
 
-    def _sid(self):
+    def _cookies(self):
+        jar = {}
         for part in self.headers.get("Cookie", "").split(";"):
             if "=" in part:
                 k, v = part.strip().split("=", 1)
-                if k == "sid":
-                    return v
-        return None
+                jar[k] = v
+        return jar
+
+    def _sid(self):
+        return self._cookies().get("sid")
 
     def _respond(self, code, msg, content_type="text/plain", extra_headers=None):
         data = msg.encode()
@@ -118,7 +172,7 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     print("Mock target on http://127.0.0.1:8000  (valid: admin / s3cr3t)")
-    print("  /login  /altlogin  /csrf")
+    print("  /login  /altlogin  /csrf  /dvwa")
     print("Ctrl+C to stop.")
     server = HTTPServer(("127.0.0.1", 8000), Handler)
     try:

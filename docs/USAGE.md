@@ -43,6 +43,8 @@ Python 3.8+ (tested on 3.13). No third-party packages — standard library only.
 | `--data` | — | POST body template for any form. Use `^USER^` / `^PASS^` (and `^TOKEN^` for CSRF) placeholders; they are URL-encoded per attempt. Omit to use the default `username=<user>&password=<pass>`. |
 | `--csrf-field` | — | Hidden field holding a CSRF token (e.g. `user_token`). Enables GET-page-first token scraping with session-cookie carry-over. |
 | `--csrf-url` | — | Page to GET for the token (defaults to `--target`). |
+| `--method` | `POST` | `GET` submits credentials in the URL query string (e.g. DVWA); `POST` in the body. |
+| `--cookie` | — | Cookie header sent with every request, e.g. `PHPSESSID=abc; security=low`. Needed for forms behind a login. |
 | `--rules` | — | JSON success-detection rules (see `configs/rules.json`). |
 | `--threads` | 4 | Concurrent workers. |
 | `--rps` | 10 | Per-worker rate limit (requests/sec). |
@@ -97,6 +99,39 @@ request like DVWA's "high" level) so you can practice this safely. Drop
 
 > Note: CSRF mode makes **two** requests per attempt (GET + POST), so it is
 > roughly half the speed of a plain POST run.
+
+## Attacking DVWA's brute-force page
+
+DVWA's brute-force form is **login-gated**, submits via **GET**, and (at the
+"high" level) carries a **rotating `user_token`**. So you need `--cookie` (your
+authenticated session + security level), `--method GET`, and for high also
+`--csrf-field`. First log into DVWA in a browser, set the security level, then
+copy your `PHPSESSID` and `security` cookies (DevTools → Application → Cookies).
+
+```bash
+# DVWA security = low  (no token)
+python main.py --target http://localhost:8080/vulnerabilities/brute/ \
+  --scope configs/scope.txt --username admin \
+  --wordlist wordlists/common.txt --rules configs/rules_dvwa.json \
+  --method GET --cookie "PHPSESSID=<yours>; security=low" \
+  --data "username=^USER^&password=^PASS^&Login=Login"
+
+# DVWA security = high  (rotating user_token -> must use --threads 1)
+python main.py --target http://localhost:8080/vulnerabilities/brute/ \
+  --scope configs/scope.txt --username admin \
+  --wordlist wordlists/common.txt --rules configs/rules_dvwa.json \
+  --method GET --cookie "PHPSESSID=<yours>; security=high" \
+  --csrf-field user_token --threads 1 \
+  --data "username=^USER^&password=^PASS^&user_token=^TOKEN^&Login=Login"
+```
+
+> The shared token at "high" rotates every request, so concurrent workers would
+> invalidate each other's token — use `--threads 1` for that level.
+
+No DVWA yet? The bundled mock target exposes `/dvwa`, which imitates this exact
+behaviour (login-gated via a `dvwa_session` cookie, GET submit, rotating token at
+`security=high`). Swap the cookie for `dvwa_session=abc; security=low|high` and
+point `--target` at `http://127.0.0.1:8000/dvwa` to practice offline.
 
 ## Success rules (`--rules`)
 

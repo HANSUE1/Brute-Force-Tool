@@ -1,0 +1,6 @@
+{
+  "_comment": "Success rules for DVWA's brute-force page (and the /dvwa mock). DVWA returns 200 for both success and failure, so we key on the response text.",
+  "status": 200,
+  "regex": "Welcome to the password protected area",
+  "not_contains": "incorrect"
+}
