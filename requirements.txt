@@ -1,0 +1,3 @@
+# The Python tool uses only the standard library (asyncio, urllib, hashlib,
+# json, re, argparse, itertools). There are no third-party dependencies to
+# install. Python 3.8+ is required (tested on 3.13).

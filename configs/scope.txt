@@ -1,0 +1,9 @@
+# Authorization scope — one authorized target URL per line.
+# The engine REFUSES to run against any target not listed here.
+# Add a target only when you have written authorization to test it
+# (your own system, a lab, or a signed engagement scope).
+#
+# Lines starting with # are ignored.
+
+# Local mock target shipped in scripts/mock_target.py (safe to test):
+http://127.0.0.1:8000/login

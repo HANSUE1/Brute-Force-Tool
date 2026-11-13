@@ -1,0 +1,6 @@
+{
+  "_comment": "Success-detection rules consumed by bruteforce/fingerprint.py. A candidate counts as a HIT only when ALL present rules pass. Tune these per target.",
+  "status": 200,
+  "regex": "Welcome|dashboard",
+  "not_contains": "Invalid credentials"
+}

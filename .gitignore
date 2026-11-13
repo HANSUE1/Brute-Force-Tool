@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+hits.txt
+*.state
+session.state
