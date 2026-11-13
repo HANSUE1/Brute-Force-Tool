@@ -40,7 +40,9 @@ Python 3.8+ (tested on 3.13). No third-party packages — standard library only.
 | `--username` | `admin` | Username to try passwords for. |
 | `--wordlist` | — | File of candidate passwords, one per line. |
 | `--mask` | — | Mask like `?l?l?d` (`?l` lower, `?u` upper, `?d` digit, `?s` symbol). Combined with the wordlist if both given. |
-| `--data` | — | POST body template for any form. Use `^USER^` / `^PASS^` placeholders; they are URL-encoded per attempt. Omit to use the default `username=<user>&password=<pass>`. |
+| `--data` | — | POST body template for any form. Use `^USER^` / `^PASS^` (and `^TOKEN^` for CSRF) placeholders; they are URL-encoded per attempt. Omit to use the default `username=<user>&password=<pass>`. |
+| `--csrf-field` | — | Hidden field holding a CSRF token (e.g. `user_token`). Enables GET-page-first token scraping with session-cookie carry-over. |
+| `--csrf-url` | — | Page to GET for the token (defaults to `--target`). |
 | `--rules` | — | JSON success-detection rules (see `configs/rules.json`). |
 | `--threads` | 4 | Concurrent workers. |
 | `--rps` | 10 | Per-worker rate limit (requests/sec). |
@@ -69,6 +71,32 @@ To find the real field names, open the login page in a browser, right-click the
 username/password boxes → Inspect, and read each input's `name="..."` attribute.
 The bundled mock target exposes `/altlogin` (fields `user` / `passwd`) so you can
 practice this against something other than the default form.
+
+## CSRF-protected forms (`--csrf-field`)
+
+Many login forms embed a hidden anti-CSRF token that changes each page load and
+is tied to a session cookie. A blind POST fails (typically 403). With
+`--csrf-field`, each attempt instead:
+
+1. **GET**s the page (`--csrf-url`, or `--target` by default),
+2. scrapes the hidden field's `value`,
+3. keeps the session cookie from that GET,
+4. **POST**s the guess with the token (`^TOKEN^` in `--data`) and the cookie.
+
+```bash
+python main.py --target http://127.0.0.1:8000/csrf \
+  --scope configs/scope.txt --username admin \
+  --wordlist wordlists/common.txt --rules configs/rules.json \
+  --data "username=^USER^&password=^PASS^&user_token=^TOKEN^" \
+  --csrf-field user_token
+```
+
+The bundled mock target exposes `/csrf` (hidden field `user_token`, rotated every
+request like DVWA's "high" level) so you can practice this safely. Drop
+`--csrf-field` and the same run fails — proof the token is really required.
+
+> Note: CSRF mode makes **two** requests per attempt (GET + POST), so it is
+> roughly half the speed of a plain POST run.
 
 ## Success rules (`--rules`)
 

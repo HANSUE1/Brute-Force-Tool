@@ -8,3 +8,4 @@
 # Local mock target shipped in scripts/mock_target.py (safe to test):
 http://127.0.0.1:8000/login
 http://127.0.0.1:8000/altlogin
+http://127.0.0.1:8000/csrf
