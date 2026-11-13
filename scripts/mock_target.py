@@ -20,7 +20,22 @@ VALID_USER = "admin"
 VALID_PASS = "s3cr3t"
 
 
+LOGIN_FORM = """<!doctype html>
+<html><head><title>Mock Login</title></head><body>
+<h2>Mock Login</h2>
+<form method="POST" action="/login">
+  <label>Username <input name="username"></label><br>
+  <label>Password <input name="password" type="password"></label><br>
+  <button type="submit">Log in</button>
+</form>
+<p>Practice target. Valid credential: admin / s3cr3t</p>
+</body></html>"""
+
+
 class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self._respond(200, LOGIN_FORM, "text/html")
+
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length).decode()
@@ -32,10 +47,10 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._respond(401, "Invalid credentials")
 
-    def _respond(self, code, msg):
+    def _respond(self, code, msg, content_type="text/plain"):
         data = msg.encode()
         self.send_response(code)
-        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
@@ -47,4 +62,9 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     print("Mock target on http://127.0.0.1:8000/login (valid: admin / s3cr3t)")
     print("Ctrl+C to stop.")
-    HTTPServer(("127.0.0.1", 8000), Handler).serve_forever()
+    server = HTTPServer(("127.0.0.1", 8000), Handler)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nStopping mock target.")
+        server.server_close()
