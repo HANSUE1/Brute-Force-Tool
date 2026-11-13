@@ -11,6 +11,10 @@ def parse(args):
     p.add_argument("--wordlist", default="")
     p.add_argument("--mask", default="")
     p.add_argument("--rules", default="")
+    p.add_argument("--data", default="",
+                   help="POST body template, e.g. 'user=^USER^&pass=^PASS^'. "
+                        "^USER^/^PASS^ are replaced (URL-encoded) per attempt. "
+                        "If omitted, defaults to username=<user>&password=<pass>.")
     p.add_argument("--threads", type=int, default=4)
     p.add_argument("--rps", type=int, default=10)
     p.add_argument("--proxies", default="")

@@ -40,8 +40,14 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length).decode()
         form = urllib.parse.parse_qs(body)
-        user = form.get("username", [""])[0]
-        pw = form.get("password", [""])[0]
+        if self.path.rstrip("/") == "/altlogin":
+            # Same credential, but DIFFERENT field names (user / passwd) to
+            # demonstrate the --data template handling arbitrary form fields.
+            user = form.get("user", [""])[0]
+            pw = form.get("passwd", [""])[0]
+        else:
+            user = form.get("username", [""])[0]
+            pw = form.get("password", [""])[0]
         if user == VALID_USER and pw == VALID_PASS:
             self._respond(200, "Welcome to the dashboard")
         else:

@@ -40,12 +40,35 @@ Python 3.8+ (tested on 3.13). No third-party packages — standard library only.
 | `--username` | `admin` | Username to try passwords for. |
 | `--wordlist` | — | File of candidate passwords, one per line. |
 | `--mask` | — | Mask like `?l?l?d` (`?l` lower, `?u` upper, `?d` digit, `?s` symbol). Combined with the wordlist if both given. |
+| `--data` | — | POST body template for any form. Use `^USER^` / `^PASS^` placeholders; they are URL-encoded per attempt. Omit to use the default `username=<user>&password=<pass>`. |
 | `--rules` | — | JSON success-detection rules (see `configs/rules.json`). |
 | `--threads` | 4 | Concurrent workers. |
 | `--rps` | 10 | Per-worker rate limit (requests/sec). |
 | `--proxies` | — | Comma-separated proxy URLs, rotated per request. |
 | `--output` | `hits.txt` | Where successful candidates are written. |
 | `--state` | `session.state` | Checkpoint file; a re-run resumes from it. |
+
+## Matching any login form (`--data`)
+
+Real forms rarely use the exact field names `username` / `password`. The `--data`
+flag lets you match any form's fields with a body template, substituting the
+username and password per attempt:
+
+```bash
+# Form whose fields are named user / passwd:
+python main.py --target http://127.0.0.1:8000/altlogin \
+  --scope configs/scope.txt --username admin \
+  --wordlist wordlists/common.txt --rules configs/rules.json \
+  --data "user=^USER^&passwd=^PASS^"
+
+# A form with an extra fixed field is just more of the template:
+#   --data "email=^USER^&pass=^PASS^&remember=1"
+```
+
+To find the real field names, open the login page in a browser, right-click the
+username/password boxes → Inspect, and read each input's `name="..."` attribute.
+The bundled mock target exposes `/altlogin` (fields `user` / `passwd`) so you can
+practice this against something other than the default form.
 
 ## Success rules (`--rules`)
 

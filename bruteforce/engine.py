@@ -21,7 +21,7 @@ class Engine:
 
     async def handler(self, candidate, state):
         from .protocol import HTTPProtocol
-        proto = HTTPProtocol(self.cfg.target, self.proxies, self.rules)
+        proto = HTTPProtocol(self.cfg.target, self.proxies, self.rules, self.cfg.data)
         ok, info = await proto.try_password(self.cfg.username, candidate)
         state["completed"] = state.get("completed", 0) + 1
         if ok:
