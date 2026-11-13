@@ -3,3 +3,4 @@ __pycache__/
 hits.txt
 *.state
 session.state
+.pytest_cache/

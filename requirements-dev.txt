@@ -1,0 +1,4 @@
+# Development/test dependencies (the tool itself needs none).
+# Install with:  python -m pip install -r requirements-dev.txt
+# Run tests with: python -m pytest
+pytest>=8.0
